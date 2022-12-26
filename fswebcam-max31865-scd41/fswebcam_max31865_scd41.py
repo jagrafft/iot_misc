@@ -7,15 +7,16 @@ import logging
 from itertools import zip_longest
 from os import makedirs
 from pathlib import Path
+from redis import Redis
 from signal import SIGINT, signal
 from subprocess import call
 from sys import exit
 from time import localtime, sleep, strftime
 
 # Paths and Directories #
-output_path = Path(
-    Path.home() / f"max31865_fswebcam_{strftime('%Y-%m-%dT%H%M%S', localtime())}"
-)
+script_start_time = strftime("%Y-%m-%dT%H%M%S", localtime())
+
+output_path = Path(Path.home() / f"max31865_fswebcam_{script_start_time}")
 
 image_path = Path(output_path / "images")
 
@@ -83,50 +84,70 @@ def fswebcam_snapshot(
 
 def sample_max31865(sensor: adafruit_max31865.MAX31865) -> dict:
     while True:
-        yield {"ohm": sensor.resistance, "C": sensor.temperature}
+        data_sample = {}
+        data_sample["timestamp"] = strftime("%Y-%m-%dT%H:%M:%S", localtime())
+
+        if sensor.resistance:
+            data_sample["ohm"] = sensor.resistance
+
+        if sensor.temperature:
+            data_sample["C"] = sensor.temperature
+
+        return data_sample
 
 
 def sample_scd41(sensor: adafruit_scd4x.SCD4X) -> dict:
     while True:
-        yield {
-            "CO2": sensor.CO2 if sensor.CO2 else "missing",
-            "C": sensor.temperature if sensor.temperature else "missing",
-            "RH": sensor.relative_humidity if sensor.relative_humidity else "missing",
-        }
+        data_sample = {}
+        data_sample["timestamp"] = strftime("%Y-%m-%dT%H:%M:%S", localtime())
+
+        if sensor.CO2:
+            data_sample["CO2"] = sensor.CO2
+
+        if sensor.temperature:
+            data_sampe["C"] = sensor.temperature
+
+        if sensor.relative_humidity:
+            data_sample["RH"] = sensor.relative_humidity
+
+        return data_sample
 
 
 # Data Files #
-max31865_session_data_file = open(
-    Path(output_path / "max31865_readings.csv"), "w", encoding="utf-8"
-)
-max31865_session_data_file.write("timestamp,C,ohm\n")
+# max31865_session_data_file = open(
+#     Path(output_path / "max31865_readings.csv"), "w", encoding="utf-8"
+# )
+# max31865_session_data_file.write("timestamp,C,ohm\n")
 
-scd41_session_data_file = open(
-    Path(output_path / "scd41_readings.csv"), "w", encoding="utf-8"
-)
-scd41_session_data_file.write("timestamp,CO2,C,RH\n")
+# scd41_session_data_file = open(
+#     Path(output_path / "scd41_readings.csv"), "w", encoding="utf-8"
+# )
+# scd41_session_data_file.write("timestamp,CO2,C,RH\n")
 
 # Program and File Close #
-def stop_sampling_close_file(signum, frame):
+def halt_sampling(signum, frame):
+    log_logger.info("SIGINT: {{ signum = {signum}, frame = {frame} }}")
     print("Closing...")
     print(f"signum: {signum}")
     print(f"frame: {frame}")
 
-    max31865_session_data_file.close()
-    scd41_session_data_file.close()
+    # max31865_session_data_file.close()
+    # scd41_session_data_file.close()
     exit()
 
 
 # Listen for SIGINT
-signal(SIGINT, stop_sampling_close_file)
+signal(SIGINT, halt_sampling)
 
 
 # Sensor Object Instantiation #
+# SCD 41
 scd41_sensor = adafruit_scd4x.SCD4X(board.I2C())
 scd41_sensor.start_periodic_measurement()
 
 sleep(1)
 
+# MAX31865
 max31865_sensor = adafruit_max31865.MAX31865(
     board.SPI(),
     digitalio.DigitalInOut(board.D5),
@@ -145,18 +166,23 @@ max31865_stream = sample_max31865(max31865_sensor)
 scd41_stream = sample_scd41(scd41_sensor)
 
 for (max31865_sample, scd41_sample) in zip_longest(max31865_stream, scd41_stream):
-    ts = localtime()
-    timestamp = strftime("%Y-%m-%dT%H:%M:%S", ts)
+    timestamp = strftime("%Y-%m-%dT%H:%M:%S", localtime())
 
     image_output_path = Path(
         image_path / f"{strftime('%Y-%m-%dT%H%M%S', ts)}.{img_format}"
     )
 
-    formatted_relative_humidity = (
-        f"({scd41_sample['RH']})"
-        if scd41_sample["RH"] == "missing"
-        else f"{scd41_sample['RH']:.2f}"
-    )
+    banner_text = []
+
+    if max31865_sample["C"]:
+        banner_text.append(f"{max31865_sample['C']:.2f}C")
+
+    if scd41_sample["CO2"]:
+        banner_text.append(f"{scd41_sample['CO2']}ppm (CO2)")
+
+    if scd41_sample["RH"]:
+        banner_text.append(f"{scd41_sample['RH']:.2f}RH")
+
     # No return value
     fswebcam_snapshot(
         "/dev/video0",
@@ -167,28 +193,32 @@ for (max31865_sample, scd41_sample) in zip_longest(max31865_stream, scd41_stream
         timestamp,
         "arial",
         18,
-        f"MAX31865: {max31865_sample['C']:.2f}C ; SCD41: {scd41_sample['CO2']}ppm (CO2), {formatted_relative_humidity}RH",
+        ",".join(banner_text),
         image_output_path,
         logger,
     )
 
-    max31865_row = ",".join(
-        [
-            timestamp,
-            str(max31865_sample["C"]),
-            str(max31865_sample["ohm"]),
-        ]
-    )
+    # max31865_row = ",".join(
+    #     [
+    #         timestamp,
+    #         str(max31865_sample["C"]),
+    #         str(max31865_sample["ohm"]),
+    #     ]
+    # )
 
-    scd41_row = ",".join(
-        [
-            timestamp,
-            str(scd41_sample["CO2"]),
-            str(scd41_sample["C"]),
-            str(scd41_sample["RH"]),
-        ]
-    )
+    # scd41_row = ",".join(
+    #     [
+    #         timestamp,
+    #         str(scd41_sample["CO2"]),
+    #         str(scd41_sample["C"]),
+    #         str(scd41_sample["RH"]),
+    #     ]
+    # )
 
-    max31865_session_data_file.writelines([max31865_row, "\n"])
-    scd41_session_data_file.writelines([scd41_row, "\n"])
+    # max31865_session_data_file.writelines([max31865_row, "\n"])
+    # scd41_session_data_file.writelines([scd41_row, "\n"])
+
+    redis_con.xadd(f"max31865_{script_start_time}", max31865_row)
+    redis_con.xadd(f"scd41_{script_start_time}", scd41_row)
+
     sleep(sample_rate)
