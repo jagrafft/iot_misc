@@ -1,6 +1,6 @@
 # Miscellaneous IoT Repository: `fswebcam-max31856-scd41/`
 
-1. Samples from
+1. Sample from
    - [Adafruit PT1000 RTD Temperature Sensor Amplifier MAX31865](https://www.adafruit.com/product/3328)
    - [Adafruit SCD-41 - True CO2 Temperature and Humidity Sensor](https://www.adafruit.com/product/5190)
 2. Take a photo using [`fswebcam`](https://github.com/fsphil/fswebcam)
