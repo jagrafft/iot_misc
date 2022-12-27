@@ -111,7 +111,7 @@ def sample_scd41(sensor: adafruit_scd4x.SCD4X) -> dict:
 
 # Program and File Close #
 def halt_sampling(signum, frame):
-    log_logger.info("SIGINT: {{ signum = {signum}, frame = {frame} }}")
+    logger.info("SIGINT: {{ signum = {signum}, frame = {frame} }}")
     print("Halting...")
     print(f"signum: {signum}")
     print(f"frame: {frame}")
