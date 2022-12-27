@@ -1,6 +1,6 @@
 # Miscellaneous IoT Repository
 
-"Home" for scripts and utilities I've written for working with Internet o' Things (IoT) devices---predominantly those manufactured by [Adafruit][adafruit] and the [Raspberry Pi Foundation][rpif]. Individual folders contain `README`s, 
+"Home" for scripts and utilities I've written for working with Internet o' Things (IoT) devices---predominantly those manufactured by [Adafruit][adafruit] and the [Raspberry Pi Foundation][rpif]. See `README` in individual folders.
 
 | Folder                     | Description                                                                                                                                                                                                                                                                                      |
 |:---------------------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
