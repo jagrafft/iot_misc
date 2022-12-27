@@ -13,6 +13,25 @@ from subprocess import call
 from sys import exit
 from time import localtime, sleep, strftime
 
+# Sensor Object Instantiation #
+# SCD 41
+i2c = board.I2C()
+scd41_sensor = adafruit_scd4x.SCD4X(i2c)
+scd41_sensor.start_periodic_measurement()
+
+sleep(1)
+
+# MAX31865
+spi = board.SPI()
+dio = digitalio.DigitalInOut(board.D5)
+max31865_sensor = adafruit_max31865.MAX31865(
+    spi,
+    dio,
+    rtd_nominal=1000.0,
+    ref_resistor=4300.0,
+    wires=3,
+)
+
 # Paths and Directories #
 script_start_time = strftime("%Y-%m-%dT%H%M%S", localtime())
 
@@ -101,7 +120,7 @@ def sample_scd41(sensor: adafruit_scd4x.SCD4X) -> dict:
             data_sample["CO2"] = sensor.CO2
 
         if sensor.temperature:
-            data_sampe["C"] = sensor.temperature
+            data_sample["C"] = sensor.temperature
 
         if sensor.relative_humidity:
             data_sample["RH"] = sensor.relative_humidity
@@ -111,7 +130,7 @@ def sample_scd41(sensor: adafruit_scd4x.SCD4X) -> dict:
 
 # Program and File Close #
 def halt_sampling(signum, frame):
-    logger.info("SIGINT: {{ signum = {signum}, frame = {frame} }}")
+    logger.info(f"SIGINT: {{ signum = {signum}, frame = {frame} }}")
     print("Halting...")
     print(f"signum: {signum}")
     print(f"frame: {frame}")
@@ -121,23 +140,6 @@ def halt_sampling(signum, frame):
 
 # Listen for SIGINT
 signal(SIGINT, halt_sampling)
-
-
-# Sensor Object Instantiation #
-# SCD 41
-scd41_sensor = adafruit_scd4x.SCD4X(board.I2C())
-scd41_sensor.start_periodic_measurement()
-
-sleep(1)
-
-# MAX31865
-max31865_sensor = adafruit_max31865.MAX31865(
-    board.SPI(),
-    digitalio.DigitalInOut(board.D5),
-    rtd_nominal=1000.0,
-    ref_resistor=4300.0,
-    wires=3,
-)
 
 
 # Data Sample Loop #
@@ -160,17 +162,35 @@ for (max31865_sample, scd41_sample) in zip_longest(max31865_stream, scd41_stream
         image_path / f"{strftime('%Y-%m-%dT%H%M%S', ts)}.{img_format}"
     )
 
-    banner_text = []
+    # Format banner text for photograph
+    banner_text = {"max": [], "scd": []}
 
     if "C" in max31865_sample:
-        banner_text.append(f"{max31865_sample['C']:.2f}C")
+        banner_text["max"].append(f"{max31865_sample['C']:.2f}C")
+
+    if "C" in scd41_sample:
+        banner_text["scd"].append(f"{scd41_sample['C']:.2f}C")
 
     if "CO2" in scd41_sample:
-        banner_text.append(f"{scd41_sample['CO2']}ppm (CO2)")
+        banner_text["scd"].append(f"{scd41_sample['CO2']}ppm(CO2)")
 
     if "RH" in scd41_sample:
-        banner_text.append(f"{scd41_sample['RH']:.2f}RH")
+        banner_text["scd"].append(f"{scd41_sample['RH']:.2f}RH")
 
+    data_banner = ""
+
+    if banner_text["max"]:
+        data_banner += "max: "
+        data_banner += ", ".join(banner_text["max"])
+
+    if banner_text["scd"]:
+        if len(data_banner) > 0:
+            data_banner += "; "
+
+        data_banner += "scd: "
+        data_banner += ", ".join(banner_text["scd"])
+
+    # Take photograph, capture exit code
     fswebcam_exit_code = fswebcam_snapshot(
         "/dev/video0",
         0,
@@ -180,10 +200,11 @@ for (max31865_sample, scd41_sample) in zip_longest(max31865_stream, scd41_stream
         timestamp,
         "arial",
         18,
-        ",".join(banner_text),
+        data_banner,
         image_output_path,
     )
 
+    # Log result of `fswebcam` call
     if fswebcam_exit_code == 0:
         logger.info(
             f"SUCCESS: {{ exit code = {fswebcam_exit_code}, path = {image_output_path} }}"
@@ -193,6 +214,7 @@ for (max31865_sample, scd41_sample) in zip_longest(max31865_stream, scd41_stream
             f"PROBLEM: {{ exit code = {fswebcam_exit_code}, path = {image_output_path} }}"
         )
 
+    # Write data to Redis Streams
     redis_con.xadd(f"max31865_{script_start_time}", max31865_sample)
     redis_con.xadd(f"scd41_{script_start_time}", scd41_sample)
 
