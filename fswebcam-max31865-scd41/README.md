@@ -1,5 +1,15 @@
 # Miscellaneous IoT Repository: `fswebcam-max31856-scd41/`
 
-Script to sample from an [Adafruit PT1000 RTD Temperature Sensor Amplifier MAX31865](https://www.adafruit.com/product/3328) and [Adafruit SCD-41 - True CO2 Temperature and Humidity Sensor](https://www.adafruit.com/product/5190), take a photo using [`fswebcam`](https://github.com/fsphil/fswebcam), label the photograph with temperature (`C`, Max31865), CO2 (`ppm`, SCD-41), and Relative Humidity (`RH`, SCD-41), then write data samples to CSV.
+1. Samples from
+   - [Adafruit PT1000 RTD Temperature Sensor Amplifier MAX31865](https://www.adafruit.com/product/3328)
+   - [Adafruit SCD-41 - True CO2 Temperature and Humidity Sensor](https://www.adafruit.com/product/5190)
+2. Take a photo using [`fswebcam`](https://github.com/fsphil/fswebcam)
+3. Label the photograph with
+   - Temperature (`C`, Max31865)
+   - CO<sub>2</sub> (`ppm`, SCD-41)
+   - Relative Humidity (`RH`, SCD-41)
+4. Write data to [Redis Streams](https://redis.io/docs/data-types/streams/)
+   - `max31865_{YYYY-mm-ddTHHMMSS}`
+   - `scd41_{YYYY-mm-ddTHHMMSS}`
 
 <!-- include photos/schematic(s)/...? -->
