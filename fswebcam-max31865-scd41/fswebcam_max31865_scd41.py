@@ -22,6 +22,11 @@ image_path = Path(output_path / "images")
 
 makedirs(image_path)
 
+# Redis #
+redis_con = Redis(host="127.0.0.1", port=6379)
+redis_con.select(7)
+print("## Redis ##")
+print("DATABASE: 7")
 
 # Logger #
 logger = logging.getLogger("max31865_fswebcam_logger")
@@ -48,7 +53,6 @@ def fswebcam_snapshot(
     font_size: int,
     label: str,
     img_path: Path,
-    log_logger: logging.Logger,
 ):
 
     cmd = [
@@ -70,16 +74,8 @@ def fswebcam_snapshot(
         img_path,
     ]
 
-    subprocess_exit_code = call(cmd)
-
-    if subprocess_exit_code == 0:
-        log_logger.info(
-            f"SUCCESS: {{ exit code = {subprocess_exit_code}, path = {image_output_path} }}"
-        )
-    else:
-        log_logger.error(
-            f"PROBLEM: {{ exit code = {subprocess_exit_code}, path = {image_output_path} }}"
-        )
+    res = call(cmd)
+    return res
 
 
 def sample_max31865(sensor: adafruit_max31865.MAX31865) -> dict:
@@ -93,7 +89,7 @@ def sample_max31865(sensor: adafruit_max31865.MAX31865) -> dict:
         if sensor.temperature:
             data_sample["C"] = sensor.temperature
 
-        return data_sample
+        yield data_sample
 
 
 def sample_scd41(sensor: adafruit_scd4x.SCD4X) -> dict:
@@ -110,29 +106,16 @@ def sample_scd41(sensor: adafruit_scd4x.SCD4X) -> dict:
         if sensor.relative_humidity:
             data_sample["RH"] = sensor.relative_humidity
 
-        return data_sample
+        yield data_sample
 
-
-# Data Files #
-# max31865_session_data_file = open(
-#     Path(output_path / "max31865_readings.csv"), "w", encoding="utf-8"
-# )
-# max31865_session_data_file.write("timestamp,C,ohm\n")
-
-# scd41_session_data_file = open(
-#     Path(output_path / "scd41_readings.csv"), "w", encoding="utf-8"
-# )
-# scd41_session_data_file.write("timestamp,CO2,C,RH\n")
 
 # Program and File Close #
 def halt_sampling(signum, frame):
     log_logger.info("SIGINT: {{ signum = {signum}, frame = {frame} }}")
-    print("Closing...")
+    print("Halting...")
     print(f"signum: {signum}")
     print(f"frame: {frame}")
 
-    # max31865_session_data_file.close()
-    # scd41_session_data_file.close()
     exit()
 
 
@@ -165,8 +148,13 @@ img_format = "jpeg"
 max31865_stream = sample_max31865(max31865_sensor)
 scd41_stream = sample_scd41(scd41_sensor)
 
+print("## Redis ##")
+print(f"STREAM: max31865_{script_start_time}")
+print(f"STREAM: scd41_{script_start_time}")
+
 for (max31865_sample, scd41_sample) in zip_longest(max31865_stream, scd41_stream):
-    timestamp = strftime("%Y-%m-%dT%H:%M:%S", localtime())
+    ts = localtime()
+    timestamp = strftime("%Y-%m-%dT%H:%M:%S", ts)
 
     image_output_path = Path(
         image_path / f"{strftime('%Y-%m-%dT%H%M%S', ts)}.{img_format}"
@@ -174,20 +162,19 @@ for (max31865_sample, scd41_sample) in zip_longest(max31865_stream, scd41_stream
 
     banner_text = []
 
-    if max31865_sample["C"]:
+    if "C" in max31865_sample:
         banner_text.append(f"{max31865_sample['C']:.2f}C")
 
-    if scd41_sample["CO2"]:
+    if "CO2" in scd41_sample:
         banner_text.append(f"{scd41_sample['CO2']}ppm (CO2)")
 
-    if scd41_sample["RH"]:
+    if "RH" in scd41_sample:
         banner_text.append(f"{scd41_sample['RH']:.2f}RH")
 
-    # No return value
-    fswebcam_snapshot(
+    fswebcam_exit_code = fswebcam_snapshot(
         "/dev/video0",
         0,
-        "1024x768",
+        "960x720",
         img_format,
         85,
         timestamp,
@@ -195,30 +182,18 @@ for (max31865_sample, scd41_sample) in zip_longest(max31865_stream, scd41_stream
         18,
         ",".join(banner_text),
         image_output_path,
-        logger,
     )
 
-    # max31865_row = ",".join(
-    #     [
-    #         timestamp,
-    #         str(max31865_sample["C"]),
-    #         str(max31865_sample["ohm"]),
-    #     ]
-    # )
+    if fswebcam_exit_code == 0:
+        logger.info(
+            f"SUCCESS: {{ exit code = {fswebcam_exit_code}, path = {image_output_path} }}"
+        )
+    else:
+        logger.error(
+            f"PROBLEM: {{ exit code = {fswebcam_exit_code}, path = {image_output_path} }}"
+        )
 
-    # scd41_row = ",".join(
-    #     [
-    #         timestamp,
-    #         str(scd41_sample["CO2"]),
-    #         str(scd41_sample["C"]),
-    #         str(scd41_sample["RH"]),
-    #     ]
-    # )
-
-    # max31865_session_data_file.writelines([max31865_row, "\n"])
-    # scd41_session_data_file.writelines([scd41_row, "\n"])
-
-    redis_con.xadd(f"max31865_{script_start_time}", max31865_row)
-    redis_con.xadd(f"scd41_{script_start_time}", scd41_row)
+    redis_con.xadd(f"max31865_{script_start_time}", max31865_sample)
+    redis_con.xadd(f"scd41_{script_start_time}", scd41_sample)
 
     sleep(sample_rate)
