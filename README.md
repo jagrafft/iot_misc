@@ -1,4 +1,4 @@
-# Miscellaneous IoT Repository
+# Miscellaneous IoT Repository: `dev`elopment branch
 
 "Home" for scripts and utilities I've written for working with Internet o' Things (IoT) devices---predominantly those manufactured by [Adafruit][adafruit] and the [Raspberry Pi Foundation][rpif]. See `README` in individual folders.
 
