@@ -19,7 +19,8 @@ i2c = board.I2C()
 scd41_sensor = adafruit_scd4x.SCD4X(i2c)
 scd41_sensor.start_periodic_measurement()
 
-sleep(1)
+# Sleep long enough for one SCD41 measurement cycle
+sleep(6)
 
 # MAX31865
 spi = board.SPI()
@@ -145,6 +146,8 @@ img_format = "jpeg"
 
 max31865_stream = sample_max31865(max31865_sensor)
 scd41_stream = sample_scd41(scd41_sensor)
+
+sleep(5)
 
 print("## Redis ##")
 print(f"STREAM: max31865_{script_start_time}")
