@@ -23,10 +23,10 @@ sleep(1)
 
 # MAX31865
 spi = board.SPI()
-dio = digitalio.DigitalInOut(board.D5)
+d5 = digitalio.DigitalInOut(board.D5)
 max31865_sensor = adafruit_max31865.MAX31865(
     spi,
-    dio,
+    d5,
     rtd_nominal=1000.0,
     ref_resistor=4300.0,
     wires=3,
@@ -114,15 +114,11 @@ def sample_max31865(sensor: adafruit_max31865.MAX31865) -> dict:
 def sample_scd41(sensor: adafruit_scd4x.SCD4X) -> dict:
     while True:
         data_sample = {}
-        data_sample["timestamp"] = strftime("%Y-%m-%dT%H:%M:%S", localtime())
 
-        if sensor.CO2:
+        if sensor.data_ready:
+            data_sample["timestamp"] = strftime("%Y-%m-%dT%H:%M:%S", localtime())
             data_sample["CO2"] = sensor.CO2
-
-        if sensor.temperature:
             data_sample["C"] = sensor.temperature
-
-        if sensor.relative_humidity:
             data_sample["RH"] = sensor.relative_humidity
 
         yield data_sample
@@ -215,7 +211,10 @@ for (max31865_sample, scd41_sample) in zip_longest(max31865_stream, scd41_stream
         )
 
     # Write data to Redis Streams
-    redis_con.xadd(f"max31865_{script_start_time}", max31865_sample)
-    redis_con.xadd(f"scd41_{script_start_time}", scd41_sample)
+    if max31865_sample:
+        redis_con.xadd(f"max31865_{script_start_time}", max31865_sample)
+
+    if scd41_sample:
+        redis_con.xadd(f"scd41_{script_start_time}", scd41_sample)
 
     sleep(sample_rate)
