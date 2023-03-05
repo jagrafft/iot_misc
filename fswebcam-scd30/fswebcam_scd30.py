@@ -44,9 +44,6 @@ file_handler.setFormatter(log_formatter)
 
 logger.addHandler(file_handler)
 
-# FFmpeg concat file
-ffmpeg_log = open(Path(image_path / "ffmpeg_concat.txt"), "a", encoding="utf-8")
-
 # Sampling Functions #
 def fswebcam_snapshot(
     device: str,
@@ -100,7 +97,6 @@ def sample_scd30(sensor: adafruit_scd30.SCD30) -> dict:
 # Program and File Close #
 def halt_sampling(signum, frame):
     logger.info(f"SIGINT: {{ signum = {signum}, frame = {frame} }}")
-    ffmpeg_log.close()
     print("Halting...")
     print(f"signum: {signum}")
     print(f"frame: {frame}")
@@ -172,7 +168,6 @@ for scd30_sample in scd30_stream:
         logger.info(
             f"SUCCESS: {{ exit code = {fswebcam_exit_code}, path = {image_output_path} }}"
         )
-        ffmpeg_log.write(f"file '{image_output_path.name}'\n")
     else:
         logger.error(
             f"PROBLEM: {{ exit code = {fswebcam_exit_code}, path = {image_output_path} }}"
