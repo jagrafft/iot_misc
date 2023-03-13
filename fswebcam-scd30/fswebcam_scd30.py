@@ -1,10 +1,9 @@
-import adafruit_max31865
-import adafruit_scd4x
+import adafruit_scd30
 import board
+import busio
 import digitalio
 import logging
 
-from itertools import zip_longest
 from os import makedirs
 from pathlib import Path
 from redis import Redis
@@ -14,29 +13,14 @@ from sys import exit
 from time import localtime, sleep, strftime
 
 # Sensor Object Instantiation #
-# SCD 41
-i2c = board.I2C()
-scd41_sensor = adafruit_scd4x.SCD4X(i2c)
-scd41_sensor.start_periodic_measurement()
-
-# Sleep long enough for one SCD41 measurement cycle
-sleep(6)
-
-# MAX31865
-spi = board.SPI()
-d5 = digitalio.DigitalInOut(board.D5)
-max31865_sensor = adafruit_max31865.MAX31865(
-    spi,
-    d5,
-    rtd_nominal=1000.0,
-    ref_resistor=4300.0,
-    wires=3,
-)
+# SCD-30
+i2c = busio.I2C(board.SCL, board.SDA, frequency=50000)
+scd30_sensor = adafruit_scd30.SCD30(i2c)
 
 # Paths and Directories #
 script_start_time = strftime("%Y-%m-%dT%H%M%S", localtime())
 
-output_path = Path(Path.home() / f"max31865_fswebcam_{script_start_time}")
+output_path = Path(Path.home() / f"scd30_fswebcam_{script_start_time}")
 
 image_path = Path(output_path / "images")
 
@@ -48,18 +32,17 @@ redis_con.select(7)
 print("## Redis ##")
 print("DATABASE: 7")
 
-# Logger #
-logger = logging.getLogger("max31865_fswebcam_logger")
+# Logger for Program #
+logger = logging.getLogger("scd30_fswebcam_logger")
 logger.setLevel(logging.DEBUG)
 log_formatter = logging.Formatter(
     "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 
-file_handler = logging.FileHandler(Path(output_path / "max31865_fswebcam.log"))
+file_handler = logging.FileHandler(Path(output_path / "scd30_fswebcam.log"))
 file_handler.setFormatter(log_formatter)
 
 logger.addHandler(file_handler)
-
 
 # Sampling Functions #
 def fswebcam_snapshot(
@@ -98,25 +81,11 @@ def fswebcam_snapshot(
     return res
 
 
-def sample_max31865(sensor: adafruit_max31865.MAX31865) -> dict:
-    while True:
-        data_sample = {}
-        data_sample["timestamp"] = strftime("%Y-%m-%dT%H:%M:%S", localtime())
-
-        if sensor.resistance:
-            data_sample["ohm"] = sensor.resistance
-
-        if sensor.temperature:
-            data_sample["C"] = sensor.temperature
-
-        yield data_sample
-
-
-def sample_scd41(sensor: adafruit_scd4x.SCD4X) -> dict:
+def sample_scd30(sensor: adafruit_scd30.SCD30) -> dict:
     while True:
         data_sample = {}
 
-        if sensor.data_ready:
+        if sensor.data_available:
             data_sample["timestamp"] = strftime("%Y-%m-%dT%H:%M:%S", localtime())
             data_sample["CO2"] = sensor.CO2
             data_sample["C"] = sensor.temperature
@@ -144,16 +113,14 @@ signal(SIGINT, halt_sampling)
 sample_rate = 28.9  # seconds, accounts for ~1s execution time of `fswebcam`
 img_format = "jpeg"
 
-max31865_stream = sample_max31865(max31865_sensor)
-scd41_stream = sample_scd41(scd41_sensor)
+scd30_stream = sample_scd30(scd30_sensor)
 
 sleep(5)
 
 print("## Redis ##")
-print(f"STREAM: max31865_{script_start_time}")
-print(f"STREAM: scd41_{script_start_time}")
+print(f"STREAM: scd30_{script_start_time}")
 
-for (max31865_sample, scd41_sample) in zip_longest(max31865_stream, scd41_stream):
+for scd30_sample in scd30_stream:
     ts = localtime()
     timestamp = strftime("%Y-%m-%dT%H:%M:%S", ts)
 
@@ -162,32 +129,25 @@ for (max31865_sample, scd41_sample) in zip_longest(max31865_stream, scd41_stream
     )
 
     # Format banner text for photograph
-    banner_text = {"max": [], "scd": []}
+    banner_text = []
 
-    if "C" in max31865_sample:
-        banner_text["max"].append(f"{max31865_sample['C']:.2f}C")
+    if "C" in scd30_sample:
+        banner_text.append(f"{scd30_sample['C']:.2f}C")
 
-    if "C" in scd41_sample:
-        banner_text["scd"].append(f"{scd41_sample['C']:.2f}C")
+    if "CO2" in scd30_sample:
+        banner_text.append(f"{scd30_sample['CO2']:.2f}ppm(CO2)")
 
-    if "CO2" in scd41_sample:
-        banner_text["scd"].append(f"{scd41_sample['CO2']}ppm(CO2)")
-
-    if "RH" in scd41_sample:
-        banner_text["scd"].append(f"{scd41_sample['RH']:.2f}RH")
+    if "RH" in scd30_sample:
+        banner_text.append(f"{scd30_sample['RH']:.2f}RH")
 
     data_banner = ""
 
-    if banner_text["max"]:
-        data_banner += "max: "
-        data_banner += ", ".join(banner_text["max"])
-
-    if banner_text["scd"]:
+    if banner_text:
         if len(data_banner) > 0:
             data_banner += "; "
 
-        data_banner += "scd: "
-        data_banner += ", ".join(banner_text["scd"])
+        data_banner += "scd30: "
+        data_banner += ", ".join(banner_text)
 
     # Take photograph, capture exit code
     fswebcam_exit_code = fswebcam_snapshot(
@@ -214,10 +174,7 @@ for (max31865_sample, scd41_sample) in zip_longest(max31865_stream, scd41_stream
         )
 
     # Write data to Redis Streams
-    if max31865_sample:
-        redis_con.xadd(f"max31865_{script_start_time}", max31865_sample)
-
-    if scd41_sample:
-        redis_con.xadd(f"scd41_{script_start_time}", scd41_sample)
+    if scd30_sample:
+        redis_con.xadd(f"scd30_{script_start_time}", scd30_sample)
 
     sleep(sample_rate)
