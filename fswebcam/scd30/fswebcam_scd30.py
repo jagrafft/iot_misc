@@ -3,10 +3,10 @@ import board
 import busio
 import digitalio
 import logging
+import redis
 
 from os import makedirs
 from pathlib import Path
-from redis import Redis
 from signal import SIGINT, signal
 from subprocess import call
 from sys import exit
@@ -27,8 +27,7 @@ image_path = Path(output_path / "images")
 makedirs(image_path)
 
 # Redis #
-redis_con = Redis(host="127.0.0.1", port=6379)
-redis_con.select(7)
+redis_con = redis.ConnectionPool(host="127.0.0.1", port=6379, db=7)
 print("## Redis ##")
 print("DATABASE: 7")
 
