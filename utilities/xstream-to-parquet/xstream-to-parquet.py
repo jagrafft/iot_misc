@@ -1,6 +1,5 @@
 print("Imports...")
 import base64
-# import cv2
 import pyarrow as pa
 import pyarrow.parquet as pq
 import redis
@@ -22,6 +21,7 @@ serialize_images = False
 if serialize_images:
     print(f"serialize_images = {serialize_images}")
     print(f"Serailizing images at base path '{base_image_path}'...")
+    import cv2
 else:
     print(f"serialize_images = {serialize_images}")
     print("Skipping serialization of images...")
