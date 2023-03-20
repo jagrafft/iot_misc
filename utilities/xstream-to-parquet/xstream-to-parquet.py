@@ -1,6 +1,6 @@
 print("Imports...")
 import base64
-import cv2
+# import cv2
 import pyarrow as pa
 import pyarrow.parquet as pq
 import redis
