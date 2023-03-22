@@ -5,10 +5,11 @@ import digitalio
 import logging
 import redis
 
+from io import BytesIO
 from os import makedirs
 from pathlib import Path
 from signal import SIGINT, signal
-from subprocess import call
+from subprocess import PIPE, Popen
 from sys import exit
 from time import localtime, sleep, strftime
 
@@ -55,7 +56,7 @@ def fswebcam_snapshot(
     font_size: int,
     label: str,
     img_path: Path,
-):
+) -> BytesIO:
 
     cmd = [
         "fswebcam",
@@ -76,8 +77,14 @@ def fswebcam_snapshot(
         img_path,
     ]
 
-    res = call(cmd)
-    return res
+    try:
+        with Popen(cmd, stdout=PIPE, bufsize=1) as p, BytesIO() as buf:
+            for line in p.stdout:
+                buf.write(line)
+
+            return buf.getvalue()
+    except:
+        return b""
 
 
 def sample_scd30(sensor: adafruit_scd30.SCD30) -> dict:
@@ -120,6 +127,7 @@ print("## Redis ##")
 print(f"STREAM: scd30_{script_start_time}")
 
 for scd30_sample in scd30_stream:
+    logging.info("Perform post processing on sample...")
     ts = localtime()
     timestamp = strftime("%Y-%m-%dT%H:%M:%S", ts)
 
@@ -149,7 +157,8 @@ for scd30_sample in scd30_stream:
         data_banner += ", ".join(banner_text)
 
     # Take photograph, capture exit code
-    fswebcam_exit_code = fswebcam_snapshot(
+    logging.info("Take photograph with 'fswebcam'...")
+    fswebcam_raw_data = fswebcam_snapshot(
         "/dev/video0",
         0,
         "960x720",
@@ -159,21 +168,29 @@ for scd30_sample in scd30_stream:
         "arial",
         18,
         data_banner,
-        image_output_path,
+        "-",  # output to `stdout`
     )
 
-    # Log result of `fswebcam` call
-    if fswebcam_exit_code == 0:
-        logger.info(
-            f"SUCCESS: {{ exit code = {fswebcam_exit_code}, path = {image_output_path} }}"
-        )
+    # Write file, if appropriate, and log result of `fswebcam` call
+    if len(fswebcam_raw_data) > 0:
+        try:
+            with open(image_output_path, "wb") as img_out:
+                img_out.write(fswebcam_raw_data)
+
+            logger.info(f"SUCCESS: image written to '{image_output_path}'")
+        except Exception:
+            logger.exception(f"Could not write to '{image_output_path}'")
     else:
         logger.error(
-            f"PROBLEM: {{ exit code = {fswebcam_exit_code}, path = {image_output_path} }}"
+            f"ERROR: zero (0) bytes returned, nothing written to '{image_output_path}'"
         )
 
     # Write data to Redis Streams
     if scd30_sample:
-        redis_con.xadd(f"scd30_{script_start_time}", scd30_sample)
+        try:
+            redis_con.xadd(f"scd30_{script_start_time}", scd30_sample)
+            logger.info("SUCCESS: sensor data written to Redis Stream")
+        except Exception:
+            logger.exception("Could not write to Redis Stream")
 
     sleep(sample_rate)
