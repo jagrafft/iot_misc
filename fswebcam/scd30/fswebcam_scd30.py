@@ -28,7 +28,7 @@ image_path = Path(output_path / "images")
 makedirs(image_path)
 
 # Redis #
-redis_con = redis.ConnectionPool(host="127.0.0.1", port=6379, db=7)
+redis_con = redis.Redis(host="127.0.0.1", port=6379, db=7)
 print("## Redis ##")
 print("DATABASE: 7")
 
@@ -78,7 +78,7 @@ def fswebcam_snapshot(
     ]
 
     try:
-        with Popen(cmd, stdout=PIPE, bufsize=1) as p, BytesIO() as buf:
+        with Popen(cmd, stdout=PIPE) as p, BytesIO() as buf:
             for line in p.stdout:
                 buf.write(line)
 
