@@ -2,7 +2,7 @@ CREATE SCHEMA "scd30_fswebcam_leaven_monitor";
 
 CREATE TABLE "scd30_fswebcam_leaven_monitor"."measurement_times" (
   "id" INTEGER PRIMARY KEY,
-  "ts" "TIMESTAMP WITH TIME ZONE" UNIQUE NOT NULL
+  "ts" TIMESTAMP WITH TIME ZONE UNIQUE NOT NULL
 );
 
 CREATE TABLE "scd30_fswebcam_leaven_monitor"."carbon_dioxide" (

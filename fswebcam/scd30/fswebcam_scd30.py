@@ -3,6 +3,8 @@ import board
 import busio
 import digitalio
 import logging
+import pyarrow as pa
+import pyarrow.parquet as pq
 import redis
 
 from io import BytesIO
@@ -20,19 +22,12 @@ scd30_sensor = adafruit_scd30.SCD30(i2c)
 
 # Paths and Directories #
 script_start_time = strftime("%Y-%m-%dT%H%M%S", localtime())
-
 output_path = Path(Path.home() / f"scd30_fswebcam_{script_start_time}")
-
 image_path = Path(output_path / "images")
 
 makedirs(image_path)
 
-# Redis #
-redis_con = redis.Redis(host="127.0.0.1", port=6379, db=7)
-print("## Redis ##")
-print("DATABASE: 7")
-
-# Logger for Program #
+# Logger #
 logger = logging.getLogger("scd30_fswebcam_logger")
 logger.setLevel(logging.DEBUG)
 log_formatter = logging.Formatter(
@@ -44,7 +39,18 @@ file_handler.setFormatter(log_formatter)
 
 logger.addHandler(file_handler)
 
-# Sampling Functions #
+# Redis #
+try:
+    logger.info("Connect to Redis instance at 'localhost:6379', database 7...")
+    redis_con = redis.Redis(host="127.0.0.1", port=6379, db=7)
+    logger.info("CONNECTED")
+    logger.info(f"XSTREAM: scd30_{script_start_time}")
+except:
+    logger.exception("Failed to connect to Redis instance")
+    logger.critical("EXIT")
+    exit()
+
+# Functions #
 def fswebcam_snapshot(
     device: str,
     _input: int,
@@ -100,12 +106,50 @@ def sample_scd30(sensor: adafruit_scd30.SCD30) -> dict:
         yield data_sample
 
 
+def xstream_to_parquet(stream: str) -> pa.Table:
+    rows = {
+        x[0].decode(): {k.decode(): v.decode() for (k, v) in x[1].items()}
+        for x in redis_con.xrange(f"{stream}")
+    }
+
+    d = {"timestamp": [], "CO2": [], "C": [], "RH": []}
+
+    for row in rows.items():
+        for k in row[1].keys():
+            d[k].append(row[1][k])
+
+    d["timestamp"] = pa.array(d["timestamp"], pa.string())
+    d["CO2"] = pa.array([float(v) for v in d["CO2"]], type=pa.float64())
+    d["C"] = pa.array([float(v) for v in d["C"]], type=pa.float64())
+    d["RH"] = pa.array([float(v) for v in d["RH"]], type=pa.float64())
+
+    return pa.table(d)
+
+
 # Program and File Close #
 def halt_sampling(signum, frame):
-    logger.info(f"SIGINT: {{ signum = {signum}, frame = {frame} }}")
-    print("Halting...")
-    print(f"signum: {signum}")
-    print(f"frame: {frame}")
+    logger.info("SIGINT issued, halting...")
+    stream = f"scd30_{script_start_time}"
+    pq_path = Path(output_path / f"{stream}.parquet")
+
+    try:
+        logger.info(f"Generating Apache Parquet Table from Redis Stream '{stream}'...")
+        pq_table = xstream_to_parquet(stream)
+        logger.info("SUCCESS")
+
+        try:
+            logger.info(f"Writing Parquet file to '{pq_path}'...")
+            pq.write_table(pq_table, pq_path)
+            logger.info("SUCCESS")
+        except:
+            logger.exception(f"Failed to write Parquet file")
+    except:
+        logger.exception("Failed to generate Parquet")
+
+    logger.info("'Graceful' shutdown complete")
+    logger.info(f"signum: {signum}")
+    logger.info(f"frame: {frame}")
+    logger.info("HALTED")
 
     exit()
 
@@ -122,9 +166,6 @@ img_format = "jpeg"
 scd30_stream = sample_scd30(scd30_sensor)
 
 sleep(5)
-
-print("## Redis ##")
-print(f"STREAM: scd30_{script_start_time}")
 
 for scd30_sample in scd30_stream:
     logging.info("Perform post processing on sample...")
