@@ -10,4 +10,12 @@
 4. Write data to [Redis Streams](https://redis.io/docs/data-types/streams/)
    - `scd30_{YYYY-mm-ddTHHMMSS}`
 
+## Work-in-Progress Items
+
+- [ ] "Dump" Redis Stream to Apache Parquet on `Ctrl-C`
+  - [ ] `async` function(s)
+- [ ] Write to SQL database
+  - [ ] Image `BLOB`s
+  - [ ] `async` function to perform `INSERT`
+  - [x] [dbdiagram.io](https://dbdiagram.io/d/641dc4665758ac5f1723edb0) Schema
 <!-- include photos/schematic(s)/...? -->
