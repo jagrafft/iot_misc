@@ -17,6 +17,5 @@
 - [ ] Write to SQL database
   - [ ] Image `BLOB`s
   - [ ] `async` function to perform `INSERT`
-  - [x] [dbdiagram.io](https://dbdiagram.io) Schema
-<iframe width="560" height="315" src='https://dbdiagram.io/embed/641dc4665758ac5f1723edb0'> </iframe>
+  - [x] [dbdiagram.io](https://dbdiagram.io/d/641dc4665758ac5f1723edb0) Schema
 <!-- include photos/schematic(s)/...? -->
