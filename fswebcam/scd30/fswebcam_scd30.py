@@ -12,7 +12,7 @@ from os import makedirs
 from pathlib import Path
 from signal import SIGINT, signal
 from subprocess import PIPE, Popen
-from sys import exit
+from sys import exit, stdout
 from time import localtime, sleep, strftime
 
 # Sensor Object Instantiation #
@@ -35,9 +35,12 @@ log_formatter = logging.Formatter(
 )
 
 file_handler = logging.FileHandler(Path(output_path / "scd30_fswebcam.log"))
+stream_handler = logging.StreamHandler(stdout)
+
 file_handler.setFormatter(log_formatter)
 
 logger.addHandler(file_handler)
+logger.addHandler(stream_handler)
 
 # Redis #
 try:
