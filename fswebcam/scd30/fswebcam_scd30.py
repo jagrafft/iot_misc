@@ -292,7 +292,7 @@ for scd30_sample in scd30_stream:
 
             if "C" in scd30_sample:
                 cur.execute(
-                    "INSERT INTO scd30.degrees_celcius VALUES (%s,%s);",
+                    "INSERT INTO scd30.degrees_celsius VALUES (%s,%s);",
                     (next_ts_id, scd30_sample["C"]),
                 )
 
