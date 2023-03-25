@@ -14,8 +14,8 @@ CREATE TABLE "rpi"."sample_times" (
 
 CREATE TABLE "rpi"."sessions" (
   "session_id" INTEGER PRIMARY KEY,
-  "start_ts" INTEGER NOT NULL,
-  "end_ts" INTEGER NOT NULL
+  "start_ts_id" INTEGER NOT NULL,
+  "end_ts_id" INTEGER NOT NULL
 );
 
 CREATE TABLE "rpi"."session_ids" (
@@ -64,9 +64,9 @@ ALTER TABLE "rpi"."images" ADD FOREIGN KEY ("ts_id") REFERENCES "rpi"."sample_ti
 
 ALTER TABLE "rpi"."sessions" ADD FOREIGN KEY ("session_id") REFERENCES "rpi"."session_ids" ("id");
 
-ALTER TABLE "rpi"."sessions" ADD FOREIGN KEY ("start_ts") REFERENCES "rpi"."sample_times" ("id");
+ALTER TABLE "rpi"."sessions" ADD FOREIGN KEY ("start_ts_id") REFERENCES "rpi"."sample_times" ("id");
 
-ALTER TABLE "rpi"."sessions" ADD FOREIGN KEY ("end_ts") REFERENCES "rpi"."sample_times" ("id");
+ALTER TABLE "rpi"."sessions" ADD FOREIGN KEY ("end_ts_id") REFERENCES "rpi"."sample_times" ("id");
 
 ALTER TABLE "scd30"."carbon_dioxide" ADD FOREIGN KEY ("ts_id") REFERENCES "rpi"."sample_times" ("id");
 
