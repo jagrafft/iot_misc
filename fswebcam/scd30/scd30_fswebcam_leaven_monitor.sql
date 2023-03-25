@@ -1,50 +1,52 @@
-CREATE SCHEMA "scd30_fswebcam_leaven_monitor";
+CREATE SCHEMA "rpi";
 
-CREATE TABLE "scd30_fswebcam_leaven_monitor"."measurement_times" (
-  "id" INTEGER PRIMARY KEY,
-  "ts" TIMESTAMP WITH TIME ZONE UNIQUE NOT NULL
-);
+CREATE SCHEMA "scd30";
 
-CREATE TABLE "scd30_fswebcam_leaven_monitor"."carbon_dioxide" (
-  "ts_id" INTEGER PRIMARY KEY,
-  "CO2" NUMERIC(16,10) NOT NULL
-);
-
-CREATE TABLE "scd30_fswebcam_leaven_monitor"."relative_humidity" (
-  "ts_id" INTEGER PRIMARY KEY,
-  "RH" NUMERIC(16,10) NOT NULL
-);
-
-CREATE TABLE "scd30_fswebcam_leaven_monitor"."degrees_celcius" (
-  "ts_id" INTEGER PRIMARY KEY,
-  "C" NUMERIC(16,10) NOT NULL
-);
-
-CREATE TABLE "scd30_fswebcam_leaven_monitor"."images" (
+CREATE TABLE "rpi"."images" (
   "ts_id" INTEGER PRIMARY KEY,
   "img_blob" BYTEA NOT NULL
 );
 
-CREATE UNIQUE INDEX ON "scd30_fswebcam_leaven_monitor"."carbon_dioxide" ("ts_id", "CO2");
+CREATE TABLE "rpi"."sample_times" (
+  "id" INTEGER PRIMARY KEY,
+  "ts" TIMESTAMP WITH TIME ZONE UNIQUE NOT NULL
+);
 
-CREATE UNIQUE INDEX ON "scd30_fswebcam_leaven_monitor"."relative_humidity" ("ts_id", "RH");
+CREATE TABLE "scd30"."carbon_dioxide" (
+  "ts_id" INTEGER PRIMARY KEY,
+  "CO2" NUMERIC(16,9) NOT NULL
+);
 
-CREATE UNIQUE INDEX ON "scd30_fswebcam_leaven_monitor"."degrees_celcius" ("ts_id", "C");
+CREATE TABLE "scd30"."degrees_celcius" (
+  "ts_id" INTEGER PRIMARY KEY,
+  "C" NUMERIC(16,9) NOT NULL
+);
 
-COMMENT ON TABLE "scd30_fswebcam_leaven_monitor"."measurement_times" IS 'Raspberry Pi clock';
+CREATE TABLE "scd30"."relative_humidity" (
+  "ts_id" INTEGER PRIMARY KEY,
+  "RH" NUMERIC(16,9) NOT NULL
+);
 
-COMMENT ON TABLE "scd30_fswebcam_leaven_monitor"."carbon_dioxide" IS 'SCD30 measurement';
+CREATE UNIQUE INDEX ON "scd30"."carbon_dioxide" ("ts_id", "CO2");
 
-COMMENT ON TABLE "scd30_fswebcam_leaven_monitor"."relative_humidity" IS 'SCD30 measurement';
+CREATE UNIQUE INDEX ON "scd30"."degrees_celcius" ("ts_id", "C");
 
-COMMENT ON TABLE "scd30_fswebcam_leaven_monitor"."degrees_celcius" IS 'SCD30 measurement';
+CREATE UNIQUE INDEX ON "scd30"."relative_humidity" ("ts_id", "RH");
 
-COMMENT ON TABLE "scd30_fswebcam_leaven_monitor"."images" IS 'fswebcam';
+COMMENT ON TABLE "rpi"."images" IS 'fswebcam utlity';
 
-ALTER TABLE "scd30_fswebcam_leaven_monitor"."carbon_dioxide" ADD FOREIGN KEY ("ts_id") REFERENCES "scd30_fswebcam_leaven_monitor"."measurement_times" ("id");
+COMMENT ON TABLE "rpi"."sample_times" IS 'Raspberry Pi clock';
 
-ALTER TABLE "scd30_fswebcam_leaven_monitor"."relative_humidity" ADD FOREIGN KEY ("ts_id") REFERENCES "scd30_fswebcam_leaven_monitor"."measurement_times" ("id");
+COMMENT ON TABLE "scd30"."carbon_dioxide" IS 'Adafruit SCD30';
 
-ALTER TABLE "scd30_fswebcam_leaven_monitor"."degrees_celcius" ADD FOREIGN KEY ("ts_id") REFERENCES "scd30_fswebcam_leaven_monitor"."measurement_times" ("id");
+COMMENT ON TABLE "scd30"."degrees_celcius" IS 'Adafruit SCD30';
 
-ALTER TABLE "scd30_fswebcam_leaven_monitor"."images" ADD FOREIGN KEY ("ts_id") REFERENCES "scd30_fswebcam_leaven_monitor"."measurement_times" ("id");
+COMMENT ON TABLE "scd30"."relative_humidity" IS 'Adafruit SCD30';
+
+ALTER TABLE "rpi"."images" ADD FOREIGN KEY ("ts_id") REFERENCES "rpi"."sample_times" ("id");
+
+ALTER TABLE "scd30"."carbon_dioxide" ADD FOREIGN KEY ("ts_id") REFERENCES "rpi"."sample_times" ("id");
+
+ALTER TABLE "scd30"."degrees_celcius" ADD FOREIGN KEY ("ts_id") REFERENCES "rpi"."sample_times" ("id");
+
+ALTER TABLE "scd30"."relative_humidity" ADD FOREIGN KEY ("ts_id") REFERENCES "rpi"."sample_times" ("id");
