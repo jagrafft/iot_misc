@@ -3,13 +3,16 @@ import board
 import busio
 import digitalio
 import logging
-import pyarrow as pa
-import pyarrow.parquet as pq
 import redis
+
+# Apache Arrow fails to compile on Raspberry Pi 4
+# import pyarrow as py
+# import pyarrow.parquet as pq
 
 from io import BytesIO
 from os import makedirs
 from pathlib import Path
+from psycopg_pool import ConnectionPool
 from signal import SIGINT, signal
 from subprocess import PIPE, Popen
 from sys import exit, stdout
@@ -41,6 +44,28 @@ file_handler.setFormatter(log_formatter)
 
 logger.addHandler(file_handler)
 logger.addHandler(stream_handler)
+
+# NeonDB #
+neon_db = {
+    "db": "",
+    "host": "",
+    "port": 5432,
+    "user": "",
+    "password": "",
+}
+
+try:
+    logger.info(
+        f"Create Psycopg connection pool for NeonDB instance at '{neon_db['host']}:{neon_db['port']}', database '{neon_db['db']}'..."
+    )
+    pool = ConnectionPool(
+        f"dbname={neon_db['db']} user={neon_db['user']} host={neon_db['host']} port={neon_db['port']}"
+    )
+    logger.info("SUCCESS")
+except:
+    logger.exception("Failed to create connection pool")
+    logger.critical("EXIT")
+    exit()
 
 # Redis #
 try:
@@ -109,6 +134,7 @@ def sample_scd30(sensor: adafruit_scd30.SCD30) -> dict:
         yield data_sample
 
 
+"""
 def xstream_to_parquet(stream: str) -> pa.Table:
     rows = {
         x[0].decode(): {k.decode(): v.decode() for (k, v) in x[1].items()}
@@ -127,11 +153,15 @@ def xstream_to_parquet(stream: str) -> pa.Table:
     d["RH"] = pa.array([float(v) for v in d["RH"]], type=pa.float64())
 
     return pa.table(d)
+"""
 
 
 # Program and File Close #
 def halt_sampling(signum, frame):
     logger.info("SIGINT issued, halting...")
+
+    # Apache Arrow fails to compile on Raspberry Pi 4
+    """
     stream = f"scd30_{script_start_time}"
     pq_path = Path(output_path / f"{stream}.parquet")
 
@@ -148,6 +178,10 @@ def halt_sampling(signum, frame):
             logger.exception(f"Failed to write Parquet file")
     except:
         logger.exception("Failed to generate Parquet")
+    """
+
+    # Close Psycopg connection pool
+    pool.close()
 
     logger.info("'Graceful' shutdown complete")
     logger.info(f"signum: {signum}")
@@ -163,7 +197,7 @@ signal(SIGINT, halt_sampling)
 
 # Data Sample Loop #
 # `sample_rate` must be >= 1.0 to avoid filename collisions
-sample_rate = 28.9  # seconds, accounts for ~1s execution time of `fswebcam`
+sample_rate = 27.9  # seconds
 img_format = "jpeg"
 
 scd30_stream = sample_scd30(scd30_sensor)
@@ -229,12 +263,64 @@ for scd30_sample in scd30_stream:
             f"ERROR: zero (0) bytes returned, nothing written to '{image_output_path}'"
         )
 
-    # Write data to Redis Streams
     if scd30_sample:
+        # Write data to Redis Streams
         try:
+            logger.info(f"Write data to Redis Stream 'scd30_{script_start_time}'")
             redis_con.xadd(f"scd30_{script_start_time}", scd30_sample)
-            logger.info("SUCCESS: sensor data written to Redis Stream")
+            logger.info("SUCCESS")
         except Exception:
             logger.exception("Could not write to Redis Stream")
+
+        # Write to NeonDB database
+        try:
+            logger.info(f"Committing data to NeonDB database '{neon_db['db']}'...")
+            conn = pool.getconn()
+            cur = conn.cursor()
+            cur.execute("SELECT MAX(id) FROM rpi.sample_times;")
+            max_sample_times_id = cur.fetchone()
+
+            if isinstance(max_sample_times_id, type(None)):
+                next_ts_id = 1
+            else:
+                next_ts_id = max_sample_times_id[0] + 1
+
+            cur.execute(
+                "INSERT INTO rpi.sample_times VALUES (%s,%s);",
+                (next_ts_id, f"{strftime('%Y-%m-%d %H:%M:%S', ts)} {ts.tm_zone}"),
+            )
+
+            if "C" in scd30_sample:
+                cur.execute(
+                    "INSERT INTO scd30.degrees_celcius VALUES (%s,%s);",
+                    (next_ts_id, scd30_sample["C"]),
+                )
+
+            if "CO2" in scd30_sample:
+                cur.execute(
+                    "INSERT INTO scd30.carbon_dioxide VALUES (%s,%s);",
+                    (next_ts_id, scd30_sample["CO2"]),
+                )
+
+            if "RH" in scd30_sample:
+                cur.execute(
+                    "INSERT INTO scd30.relative_humidity VALUES (%s,%s);",
+                    (next_ts_id, scd30_sample["RH"]),
+                )
+
+            if len(fswebcam_raw_data) > 0:
+                cur.execute(
+                    "INSERT INTO rpi.images VALUES (%s,%s);",
+                    (next_ts_id, fswebcam_raw_data),
+                )
+        except BaseException:
+            logging.exception("Error with Psycopg connection or cursor, rolling back")
+            conn.rollback()
+        else:
+            conn.commit()
+            logger.info("SUCCESS")
+        finally:
+            cur.close()
+            pool.putconn(conn)
 
     sleep(sample_rate)
