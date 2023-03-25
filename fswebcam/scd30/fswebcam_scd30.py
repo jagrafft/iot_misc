@@ -280,7 +280,7 @@ for scd30_sample in scd30_stream:
             cur.execute("SELECT MAX(id) FROM rpi.sample_times;")
             max_sample_times_id = cur.fetchone()
 
-            if isinstance(max_sample_times_id, type(None)):
+            if isinstance(max_sample_times_id[0], type(None)):
                 next_ts_id = 1
             else:
                 next_ts_id = max_sample_times_id[0] + 1
