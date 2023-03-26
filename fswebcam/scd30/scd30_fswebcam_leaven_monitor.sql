@@ -38,7 +38,7 @@ CREATE TABLE "scd30"."relative_humidity" (
   "RH" NUMERIC(16,9) NOT NULL
 );
 
-CREATE UNIQUE INDEX ON "rpi"."sessions" ("session_id", "start_ts", "end_ts");
+CREATE UNIQUE INDEX ON "rpi"."sessions" ("session_id", "start_ts_id", "end_ts_id");
 
 CREATE UNIQUE INDEX ON "scd30"."carbon_dioxide" ("ts_id", "CO2");
 
