@@ -54,6 +54,10 @@ neon_db = {
     "password": "",
 }
 
+# Global variables (:vomit:) for tracking session indices
+neondb_session_index = 1
+neond_session_start_ts_id = 1
+
 try:
     logger.info(
         f"Create Psycopg connection pool for NeonDB instance at '{neon_db['host']}:{neon_db['port']}', database '{neon_db['db']}'..."
@@ -180,6 +184,36 @@ def halt_sampling(signum, frame):
         logger.exception("Failed to generate Parquet")
     """
 
+    # Write session information to Neon database
+    try:
+        logger.info(
+            f"Write session information to '{neon_db['host']}:{neon_db['port']}', database '{neon_db['db']}'..."
+        )
+        conn = pool.getconn()
+        cur = conn.cursor()
+
+        cur.execute("SELECT MAX(id) FROM rpi.sample_times;")
+        neondb_session_end_ts_id = cur.fetchone()[0]
+
+        cur.execute(
+            "INSERT INTO rpi.sessions (session_id,start_ts_id,end_ts_id) VALUES (%s,%s,%s);",
+            (
+                neondb_session_index,
+                neondb_session_start_ts_id,
+                neondb_session_end_ts_id,
+            ),
+        )
+    except BaseException:
+        logging.exception("Could not write session info")
+        logging.critical("EXIT")
+        exit()
+    else:
+        conn.commit()
+        logger.info("SUCCESS")
+    finally:
+        cur.close()
+        pool.putconn(conn)
+
     # Close Psycopg connection pool
     pool.close()
 
@@ -201,6 +235,64 @@ sample_rate = 27.9  # seconds
 img_format = "jpeg"
 
 scd30_stream = sample_scd30(scd30_sensor)
+
+# Initialize Neon database for session #
+# Determine Starting Index for Timestamps
+next_ts_id = 1
+try:
+    logger.info(
+        f"Get index of most recent timestamp in '{neon_db['host']}:{neon_db['port']}', database '{neon_db['db']}'..."
+    )
+    conn = pool.getconn()
+    cur = conn.cursor()
+    cur.execute("SELECT MAX(id) FROM rpi.sample_times;")
+    max_sample_time_id = cur.fetchone()
+
+    if not isinstance(max_sample_time_id[0], type(None)):
+        neondb_session_start_ts_id = max_sample_time_id[0]
+        next_ts_id = max_sample_time_id[0] + 1
+
+except BaseException:
+    logging.exception("Could not query index")
+    logging.critical("EXIT")
+    exit()
+else:
+    conn.commit()
+    logger.info("SUCCESS")
+finally:
+    cur.close()
+    pool.putconn(conn)
+
+# Write session identifier to Neon database
+try:
+    logger.info(
+        f"Write session info to '{neon_db['host']}:{neon_db['port']}', database '{neon_db['db']}'..."
+    )
+    conn = pool.getconn()
+    cur = conn.cursor()
+
+    cur.execute("SELECT MAX(id) FROM rpi.session_ids;")
+    max_session_id = cur.fetchone()
+
+    if not isinstance(max_session_id[0], type(None)):
+        neondb_session_index = max_session_id[0] + 1
+
+    cur.execute(
+        "INSERT INTO rpi.session_ids (id,label) VALUES (%s,%s);",
+        (neondb_session_index, f"scd_{script_start_time}"),
+    )
+except BaseException:
+    logging.exception("Could not write session info")
+    logging.critical("EXIT")
+    exit()
+else:
+    conn.commit()
+    logger.info("SUCCESS")
+finally:
+    cur.close()
+    pool.putconn(conn)
+
+#
 
 sleep(5)
 
@@ -277,13 +369,12 @@ for scd30_sample in scd30_stream:
             logger.info(f"Committing data to NeonDB database '{neon_db['db']}'...")
             conn = pool.getconn()
             cur = conn.cursor()
-            cur.execute("SELECT MAX(id) FROM rpi.sample_times;")
-            max_sample_times_id = cur.fetchone()
 
-            if isinstance(max_sample_times_id[0], type(None)):
-                next_ts_id = 1
-            else:
-                next_ts_id = max_sample_times_id[0] + 1
+            cur.execute("SELECT MAX(id) FROM rpi.sample_times;")
+            max_sample_time_id = cur.fetchone()
+
+            if not isinstance(max_sample_time_id[0], type(None)):
+                next_ts_id = max_sample_time_id[0] + 1
 
             cur.execute(
                 "INSERT INTO rpi.sample_times VALUES (%s,%s);",
