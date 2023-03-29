@@ -15,6 +15,9 @@ repository = "https://github.com/jagrafft/iot-misc"
 [tool.poetry.dependencies]
 python = "^3.8"
 pytomlpp = "^1.0.13"
+redis = "^4.5.4"
+psycopg = {extras = ["pool"], version = "^3.1.8"}
+pyarrow = "^11.0.0"
 
 [tool.poetry.dev-dependencies]
 

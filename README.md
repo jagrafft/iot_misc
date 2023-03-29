@@ -2,11 +2,12 @@
 
 Command-line interface for sampling from IoT sensors then writing to one or more persistent stores. Merges the design goals (and partial implementations) of [iot-data-stream-utils](https://github.com/jagrafft/iot-data-stream-utils) and the `{ main ; dev }` branches of [iot-misc](https://github.com/jagrafft/iot-misc), but is otherwise a "ground up" rewrite using a modularized `async` framework.
 
+**Note:** [CircuitPython][circuitpython], drivers, and support libraries for IoT devices are _NOT_ included in `pyproject.toml` (e.g. not installed by default).
+
 ## Initial Targets
 
 - Standardize Configuration File
-  - [x] TOML
-  - [ ] Elements
+  - [ ] TOML
 - Data Persistence
     - [ ] [Apache Parquet][apacheparquet]
     - [ ] [InfluxDB][influxdb]
