@@ -1,6 +1,7 @@
 name = "SESSION NAME" # used as prefix
 output = "PATH/TO/OUTPUT/DIR"
 sample_rate = 13 # seconds
+timestamp = True # append current timestamp to session name
 
 [destinations]
 
