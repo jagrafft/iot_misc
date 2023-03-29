@@ -1,3 +1,5 @@
+import asyncio
+
 from abc import ABC, abstractmethod
 
 
@@ -11,7 +13,7 @@ class IoTSensor(ABC):
         self._sensor = sensor
 
     @abstractmethod
-    def sample(self, rate) -> dict:
+    async def sample(self, delay: float) -> dict:
         """ """
         pass
 

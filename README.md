@@ -15,8 +15,10 @@ Command-line interface for sampling from IoT sensors then writing to one or more
 - Platform
     - [Raspberry Pi][rpif]
         - [CircuitPython][circuitpython]
-- Sensors
+- Drivers
+    - [ ] Abstract class for an IoT Sensor
     - [AdaFruit][adafruit]
+        - [ ] [BNO055 - 9-DoF Absolute Orientation IMU Fusion Breakout][bno055]
         - [ ] [MAX31865 - PT1000 RTD Temperature Sensor Amplifier][max31865]
         - [ ] [SCD-30 - NDIR CO<sub>2</sub> Temperature and Humidity Sensor][scd30]
         - [ ] [SHT-30 - Mesh-protected Weather-proof Temperature/Humidity Sensor][sht30]
@@ -34,6 +36,7 @@ Command-line interface for sampling from IoT sensors then writing to one or more
 
 [adafruit]: https://www.adafruit.com/
 [apacheparquet]: https://parquet.apache.org/
+[bno055]: https://www.adafruit.com/product/2472
 [circuitpython]: https://circuitpython.org
 [fswebcam]: https://github.com/fsphil/fswebcam
 [influxdb]: https://github.com/influxdata/influxdb
