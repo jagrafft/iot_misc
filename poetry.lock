@@ -1,40 +1,15 @@
 [[package]]
-name = "cleo"
-version = "2.0.1"
-description = "Cleo allows you to create beautiful and testable command-line interfaces."
+name = "pytomlpp"
+version = "1.0.13"
+description = "A python wrapper for toml++"
 category = "main"
 optional = false
-python-versions = ">=3.7,<4.0"
-
-[package.dependencies]
-crashtest = ">=0.4.1,<0.5.0"
-rapidfuzz = ">=2.2.0,<3.0.0"
-
-[[package]]
-name = "crashtest"
-version = "0.4.1"
-description = "Manage Python errors with ease"
-category = "main"
-optional = false
-python-versions = ">=3.7,<4.0"
-
-[[package]]
-name = "rapidfuzz"
-version = "2.13.7"
-description = "rapid fuzzy string matching"
-category = "main"
-optional = false
-python-versions = ">=3.7"
-
-[package.extras]
-full = ["numpy"]
+python-versions = "*"
 
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "986989285bd9f319237dcac3d5cd852bb1e6b4430f4e13a8424841a71d0e8bea"
+content-hash = "9bc6c566646cbd8a88e56f3937415df5a447de750e4d7149857cc0eb46ff5f39"
 
 [metadata.files]
-cleo = []
-crashtest = []
-rapidfuzz = []
+pytomlpp = []

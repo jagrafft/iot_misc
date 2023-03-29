@@ -4,6 +4,9 @@ Command-line interface for sampling from IoT sensors then writing to one or more
 
 ## Initial Targets
 
+- Standardize Configuration File
+  - [x] TOML
+  - [ ] Elements
 - Data Persistence
     - [ ] [Apache Parquet][apacheparquet]
     - [ ] [InfluxDB][influxdb]
@@ -19,6 +22,15 @@ Command-line interface for sampling from IoT sensors then writing to one or more
         - [ ] [SHT-30 - Mesh-protected Weather-proof Temperature/Humidity Sensor][sht30]
     - Platform Utilities
         - [ ] [fswebcam][fswebcam]
+
+## Options
+
+| CLI               | Configuation TOML     | Type      | Description                                              |
+|:-----------------:|:---------------------:|:---------:|:---------------------------------------------------------|
+| `-c, --config`    |                       | _flag_    | Path to session configuration. **Required.**             |
+| `-n, --name`      | `[session].name`      | `String`  | Name of session. Used as key and identifier for dataset. |
+| `-t, --timestamp` | `[session].timestamp` | `Boolean` | Append current timestamp to session name.                |
+
 
 [adafruit]: https://www.adafruit.com/
 [apacheparquet]: https://parquet.apache.org/
