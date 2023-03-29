@@ -8,6 +8,8 @@ Command-line interface for sampling from IoT sensors then writing to one or more
 
 - Standardize Configuration File
   - [ ] TOML
+- Runtime Monitoring
+  - [ ] Logging
 - Data Persistence
     - [ ] [Apache Parquet][apacheparquet]
     - [ ] [InfluxDB][influxdb]
@@ -28,11 +30,11 @@ Command-line interface for sampling from IoT sensors then writing to one or more
 
 ## Options
 
-| CLI               | Configuation TOML     | Type      | Description                                              |
-|:-----------------:|:---------------------:|:---------:|:---------------------------------------------------------|
-| `-c, --config`    |                       | _flag_    | Path to session configuration. **Required.**             |
-| `-n, --name`      | `[session].name`      | `String`  | Name of session. Used as key and identifier for dataset. |
-| `-t, --timestamp` | `[session].timestamp` | `Boolean` | Append current timestamp to session name.                |
+| CLI               | Configuation TOML | Type      | Description                                              |
+|:-----------------:|:-----------------:|:---------:|:---------------------------------------------------------|
+| `-c, --config`    |                   | _flag_    | Path to session configuration. **Required.**             |
+| `-n, --name`      | `name`            | `String`  | Name of session. Used as key and identifier for dataset. |
+| `-t, --timestamp` | `timestamp`       | `Boolean` | Append current timestamp to session name.                |
 
 
 [adafruit]: https://www.adafruit.com/
