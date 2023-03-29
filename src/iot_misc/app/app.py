@@ -1,9 +1,8 @@
 import asyncio
 
-# from app.logger import init_logger
+from pathlib import Path
+from sys import exit
 
-
-async def main():
-    from parsers.cli import arguments
-
-    print(arguments)
+async def main(config: dict) -> None:
+    print("\n### main(config:dict) -> None ###")
+    print(config)

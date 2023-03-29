@@ -1,10 +1,8 @@
 name = "SESSION NAME" # used as prefix
-output = "PATH/TO/OUTPUT/DIR"
+path = "PATH/TO/OUTPUT/DIR"
 sample_rate = 13 # seconds
-timestamp = True # append current timestamp to session name
 
 [destinations]
-
 [destinations.postgres]
 database = ""
 host = "127.0.0.1"
@@ -12,14 +10,12 @@ port = 5432
 # Set username and password with envars
 
 [destinations.redis]
-database = 1
+database = 3
 host = "127.0.0.1"
 port = 6379
 
 [sources]
-
 [sources.fswebcam]
-device = ""
 input = ""
 resolution = ""
 format = ""
@@ -29,3 +25,5 @@ timestamp = true # Boolean
 font = "" # must be supported by system
 font_size = 12
 data_banner = true # adds sensor readings to image
+
+# [sources.scd30]
