@@ -6,27 +6,27 @@ Command-line interface for sampling from IoT sensors then writing to one or more
 
 ## Initial Targets
 
-- Standardize Configuration File
-  - [ ] TOML
-- Runtime Monitoring
-  - [ ] Logging
-- Data Persistence
-    - [ ] [Apache Parquet][apacheparquet]
-    - [ ] [InfluxDB][influxdb]
-    - [ ] [NeonDB][neondb]
-    - [ ] [Redis Streams][redisstreams]
 - Platform
     - [Raspberry Pi][rpif]
         - [CircuitPython][circuitpython]
-- Drivers
-    - [ ] Abstract class for an IoT Sensor
+- Classes
+    - [x] Abstract class for IoT Sensors
     - [AdaFruit][adafruit]
         - [ ] [BNO055 - 9-DoF Absolute Orientation IMU Fusion Breakout][bno055]
-        - [ ] [MAX31865 - PT1000 RTD Temperature Sensor Amplifier][max31865]
-        - [ ] [SCD-30 - NDIR CO<sub>2</sub> Temperature and Humidity Sensor][scd30]
+        - [x] [MAX31865 - PT1000 RTD Temperature Sensor Amplifier][max31865]
+        - [x] [SCD-30 - NDIR CO<sub>2</sub> Temperature and Humidity Sensor][scd30]
         - [ ] [SHT-30 - Mesh-protected Weather-proof Temperature/Humidity Sensor][sht30]
     - Platform Utilities
         - [ ] [fswebcam][fswebcam]
+- Runtime Monitoring
+  - [x] Logging
+- Standardize `Config`uration File
+  - [ ] TOML
+- (`async`) Workers for Data Persistence
+    - [ ] [Apache Parquet][apacheparquet]
+    - [ ] [InfluxDB][influxdb]
+    - [ ] [NeonDB][neondb]
+    - [x] [Redis Streams][redisstreams]
 
 ## Options
 
