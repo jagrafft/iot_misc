@@ -16,6 +16,7 @@ port = 6379
 
 [sources]
 [sources.fswebcam]
+device = ""
 input = ""
 resolution = ""
 format = ""
