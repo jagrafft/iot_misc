@@ -62,14 +62,14 @@ COMMENT ON TABLE "scd30"."relative_humidity" IS 'Adafruit SCD30';
 
 ALTER TABLE "rpi"."images" ADD FOREIGN KEY ("ts_id") REFERENCES "rpi"."sample_times" ("id");
 
-ALTER TABLE "rpi"."sessions" ADD FOREIGN KEY ("session_id") REFERENCES "rpi"."session_ids" ("id");
+ALTER TABLE "rpi"."session_ids" ADD FOREIGN KEY ("id") REFERENCES "rpi"."sessions" ("session_id") ON DELETE CASCADE ON UPDATE CASCADE;
 
-ALTER TABLE "rpi"."sessions" ADD FOREIGN KEY ("start_ts_id") REFERENCES "rpi"."sample_times" ("id");
+ALTER TABLE "rpi"."sample_times" ADD FOREIGN KEY ("id") REFERENCES "rpi"."sessions" ("start_ts_id") ON DELETE SET NULL ON UPDATE CASCADE;
 
-ALTER TABLE "rpi"."sessions" ADD FOREIGN KEY ("end_ts_id") REFERENCES "rpi"."sample_times" ("id");
+ALTER TABLE "rpi"."sample_times" ADD FOREIGN KEY ("id") REFERENCES "rpi"."sessions" ("end_ts_id") ON DELETE SET NULL ON UPDATE CASCADE;
 
-ALTER TABLE "scd30"."carbon_dioxide" ADD FOREIGN KEY ("ts_id") REFERENCES "rpi"."sample_times" ("id");
+ALTER TABLE "rpi"."sample_times" ADD FOREIGN KEY ("id") REFERENCES "scd30"."carbon_dioxide" ("ts_id") ON DELETE CASCADE ON UPDATE CASCADE;
 
-ALTER TABLE "scd30"."degrees_celsius" ADD FOREIGN KEY ("ts_id") REFERENCES "rpi"."sample_times" ("id");
+ALTER TABLE "rpi"."sample_times" ADD FOREIGN KEY ("id") REFERENCES "scd30"."degrees_celsius" ("ts_id") ON DELETE CASCADE ON UPDATE CASCADE;
 
-ALTER TABLE "scd30"."relative_humidity" ADD FOREIGN KEY ("ts_id") REFERENCES "rpi"."sample_times" ("id");
+ALTER TABLE "rpi"."sample_times" ADD FOREIGN KEY ("id") REFERENCES "scd30"."relative_humidity" ("ts_id") ON DELETE CASCADE ON UPDATE CASCADE;
