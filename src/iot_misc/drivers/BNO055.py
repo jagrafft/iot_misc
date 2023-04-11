@@ -4,7 +4,6 @@ from abstract.IoTSensor import IoTSensor
 from time import time_ns
 
 
-# TODO Use `asyncio`
 class BNO055(IoTSensor):
     """Class for sampling from an Adafruit BNO055."""
 

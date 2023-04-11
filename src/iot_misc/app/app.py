@@ -11,4 +11,4 @@ async def main(config: dict, logger: Logger) -> None:
     # [ ] sample
     # [ ] "graceful" shutdown
     logger.info("### main(config: dict, logger: Logger) -> None ###")
-    logger.info(config)
+    logger.info(config["sources"])
